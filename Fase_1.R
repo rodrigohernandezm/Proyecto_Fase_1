@@ -13,7 +13,15 @@ for (archivo in archivos) {
 }
 
 
-
 ls()
+
+
+df_2018<- as.data.frame(df_2018)
+df_2019<- as.data.frame(df_2019)
+df_2020<- as.data.frame(df_2020)
+df_2021<- as.data.frame(df_2021)
+df_2022<- as.data.frame(df_2022)
+df_2023<- as.data.frame(df_2023)
+df_2024<- as.data.frame(df_2024)
 
 

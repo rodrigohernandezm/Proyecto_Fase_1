@@ -70,4 +70,14 @@ inspect(reglas[0:130])
 reglas<- sort(reglas, by = "support", decreasing = TRUE)
 inspect(reglas[0:130])
 
+### filtrando solo a los ebrios
+df_final <- df_final %>% select(-nacionalidad_inf)
+
+df_final_e = df_final[df_final$est_ebriedad_inf == 1,]
+reglas_e<- apriori(df_final_e[, !names(df_final_e) %in% c('num_corre', 'est_ebriedad_inf')], parameter = list(support=0.2, confidence = 0.5))
+
+reglas_e<- sort(reglas_e, by = "support", decreasing = TRUE)
+inspect(reglas_e[0:130])
+
+
 

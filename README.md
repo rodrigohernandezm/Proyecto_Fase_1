@@ -1,132 +1,107 @@
-# 📊 Proyecto de Integración, Limpieza y Análisis de Faltas Judiciales (2018–2024)
+# 📊 Proyecto de Integración, Limpieza y Consolidación de Faltas Judiciales (2018--2024)
 
-Este proyecto automatiza la **lectura, estandarización, unificación y análisis exploratorio** de las bases anuales de **faltas judiciales en Guatemala**, originalmente publicadas por el **Instituto Nacional de Estadística (INE)**. El objetivo es generar una base consolidada (2020–2024) y analizar patrones de comportamiento mediante **reglas de asociación** enfocadas en los infractores que se encontraban en **estado de ebriedad**.
+Este proyecto automatiza la **lectura, estandarización, limpieza y
+unificación** de las bases anuales de **faltas judiciales de Guatemala**
+publicadas por el **INE**.\
+El objetivo técnico es generar una **base consolidada** de los años
+**2020--2024**, lista para análisis posteriores.
 
----
+------------------------------------------------------------------------
 
 ## 📁 Estructura del Proyecto
 
-```
-/Proyecto_Faltas_Judiciales/
-│
-├── datasets/                         # Carpeta con los archivos Excel
-│   ├── faltas_2018.xlsx
-│   ├── faltas_2019.xlsx
-│   ├── faltas_2020.xlsx
-│   ├── faltas_2021.xlsx
-│   ├── faltas_2022.xlsx
-│   ├── faltas_2023.xlsx
-│   └── faltas_2024.xlsx
-│
-├── script_limpieza.R                 # Script principal (código de integración y limpieza)
-└── README.md                         # Este archivo
-```
+    /Proyecto_Faltas_Judiciales/
+    │
+    ├── datasets/                         # Archivos fuente en formato Excel
+    │   ├── faltas_2018.xlsx
+    │   ├── faltas_2019.xlsx
+    │   ├── faltas_2020.xlsx
+    │   ├── faltas_2021.xlsx
+    │   ├── faltas_2022.xlsx
+    │   ├── faltas_2023.xlsx
+    │   └── faltas_2024.xlsx
+    │
+    ├── script_limpieza.R                 # Script principal de procesamiento
+    └── README.md                         # Documento técnico
 
----
+------------------------------------------------------------------------
 
 ## ⚙️ Requisitos
 
-### 🧩 Paquetes necesarios
+### 🧩 Paquetes utilizados
 
-```r
+``` r
 install.packages(c("readxl", "dplyr", "stringi", "arules"))
 ```
 
 ### 💻 Requisitos del sistema
 
-- R 4.2 o superior  
-- Sistema operativo Windows, Linux o MacOS  
-- Carpeta con permisos de lectura (local u OneDrive)
+-   R versión 4.2 o superior\
+-   RStudio o entorno compatible\
+-   Carpeta con permisos de lectura/escritura
 
----
+------------------------------------------------------------------------
 
-## 🚀 Ejecución del Script
+## 🚀 Flujo de Ejecución
 
-1. **Colocar todos los archivos `.xlsx`** dentro de la carpeta indicada en la variable `ruta` del script.
-2. **Ejecutar el script completo** en RStudio o desde consola:
+1.  **Lectura automática de archivos**
+    -   Se obtienen todos los archivos `.xlsx` de la carpeta `datasets/`
+        mediante `list.files()`.
+    -   Cada archivo se asigna dinámicamente como `df_YYYY` según el
+        año.
+2.  **Estandarización de columnas**
+    -   Conversión de nombres a minúsculas y sin acentos
+        (`stringi::stri_trans_general`).
+    -   Uniformización de columnas equivalentes (`gran_grupos`,
+        `subg_principales`, `g_primarios`).
+3.  **Limpieza de datos**
+    -   Se eliminan columnas que no aportan valor analítico o que
+        contienen información redundante:
+        -   `edad_quinquenales`
+        -   `ocupacionhabitual`
+        -   `filter_$`
+        -   `nacionalidad_inf` (alta homogeneidad en los valores)
+    -   Se corrigen tipos de datos inconsistentes (ej. `area_geo_inf`
+        convertida a texto).
+4.  **Unificación de bases**
+    -   Se combinan los data frames anuales usando `bind_rows()` en un
+        único objeto `df_final`.
+    -   Se conservan únicamente los años **2020 a 2024** para mantener
+        consistencia estructural.
+5.  **Validaciones básicas**
+    -   Verificación de cantidad de registros por año.
+    -   Revisión de presencia de valores `NA` por columna.
+    -   Confirmación de tipos (`str(df_final)`).
 
-   ```r
-   source("script_limpieza.R")
-   ```
-
-3. El script realiza automáticamente:
-   - Lectura de todos los archivos Excel y creación dinámica de `df_YYYY`.  
-   - Conversión a `data.frame` y selección de años **2020–2024**.  
-   - Limpieza de nombres de columnas (minúsculas, sin tildes, sin acentos).  
-   - Estandarización de nombres equivalentes (`gran_grupos`, `subg_principales`, `g_primarios`).  
-   - Eliminación de columnas **no relevantes o redundantes**:
-     - `edad_quinquenales`
-     - `ocupacionhabitual`
-     - `filter_$`
-     - `nacionalidad_inf` (por baja variabilidad analítica; casi todos guatemaltecos)
-   - Conversión de tipos inconsistentes (`area_geo_inf` a texto).  
-   - Integración final en un único `df_final` mediante `bind_rows()`.
-
----
+------------------------------------------------------------------------
 
 ## 📦 Salida esperada
 
-El objeto `df_final` contiene los datos unificados de **2020–2024**, listos para análisis posterior.  
-Para exportar la base consolidada:
+El objeto `df_final` contiene los registros limpios y consolidados.\
+Puede exportarse a CSV mediante:
 
-```r
+``` r
 write.csv(df_final, "df_final.csv", row.names = FALSE, fileEncoding = "UTF-8")
 ```
 
----
+------------------------------------------------------------------------
 
-## 🧮 Análisis de Reglas de Asociación
+## 🧠 Observaciones técnicas
 
-Una vez consolidada la base, se realizó un análisis de **reglas de asociación (Apriori)** sobre los casos donde `est_ebriedad_inf = 1` (infractores en estado de ebriedad), con el fin de identificar patrones socio-demográficos y geográficos.
+-   Se comprobó la existencia de un **diccionario de variables oficial**
+    (INE), pero no se utilizó directamente dentro del código.\
+-   Se documentó la eliminación de `filter_$` como paso permanente (debe
+    reflejarse en versiones futuras del README).\
+-   El script es modular y puede adaptarse fácilmente si se agregan años
+    adicionales al dataset.\
+-   Se trabajó en entorno **Colab y local (RStudio)** sin dependencias
+    externas fuera de las librerías mencionadas.
 
-### 🔹 Variables consideradas
-- `falta_inf`: tipo de falta judicial  
-- `area_geo_inf`: zona geográfica (urbana o rural)  
-- `sexo_inf`: sexo del infractor  
-- `grupo_etnico_inf`: grupo étnico  
-- `cond_alfabetismo_inf`: condición de alfabetismo  
-- `est_conyugal_inf`: estado conyugal
-
----
-
-## 🔍 Principales hallazgos
-
-1. **Tipo de falta predominante**  
-   El 89 % de las faltas cometidas por infractores ebrios corresponden a **faltas contra las buenas costumbres y el orden público**, lo que muestra una clara relación entre consumo de alcohol y conductas disruptivas sociales.
-
-2. **Concentración urbana**  
-   Aproximadamente el 67 % de los casos se registran en **áreas urbanas**, reflejando tanto mayor exposición al control institucional como una concentración territorial del fenómeno.
-
-3. **Composición étnica**  
-   El 63 % de los infractores pertenecen a **grupos no indígenas o sin registro étnico**, reflejando un sesgo urbano o deficiencias en la cobertura del registro rural.
-
-4. **Relación área–tipo de falta**  
-   En zonas urbanas, el **90 % de los infractores ebrios** cometen faltas **contra las buenas costumbres o el orden público**, reforzando el vínculo entre consumo de alcohol y desórdenes en espacios públicos.
-
----
-
-## 💡 Ejemplo de interpretación
-
-**Regla:**  
-`{} => {area_geo_inf=1}` con `support = 0.674`
-
-**Interpretación:**  
-> Aproximadamente el 67 % de las faltas judiciales cometidas por personas en estado de ebriedad ocurren en áreas urbanas. Esto evidencia que el fenómeno se concentra en contextos urbanos, donde hay mayor interacción social, consumo público de alcohol y capacidad institucional para documentar los hechos.
-
----
-
-## 🧠 Conclusiones
-
-- Las faltas vinculadas a la ebriedad presentan un **perfil urbano y socialmente disruptivo**.  
-- Las **reglas de asociación** permiten confirmar la relación entre **entorno urbano y comportamiento antisocial**.  
-- Variables demográficas como **sexo, alfabetismo y estado civil** tienen registros completos, indicando **buena calidad de los datos**.  
-- Se eliminaron columnas sin aporte analítico (`nacionalidad_inf`, `filter_$`, etc.) para mejorar la claridad de los patrones.
-
----
+------------------------------------------------------------------------
 
 ## 👨‍💻 Autor
 
-**Rodrigo Eduardo Hernández Morales**  
-Maestría en Ciencia de la Computación – Especialidad en Ciencia de Datos  
+**Rodrigo Eduardo Hernández Morales**\
+Maestría en Ciencia de la Computación -- Especialidad en Ciencia de
+Datos\
 Universidad de San Carlos de Guatemala
-

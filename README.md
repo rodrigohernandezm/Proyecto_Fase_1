@@ -89,13 +89,11 @@ write.csv(df_final, "df_final.csv", row.names = FALSE, fileEncoding = "UTF-8")
 ## 🧠 Observaciones técnicas
 
 -   Se comprobó la existencia de un **diccionario de variables oficial**
-    (INE), pero no se utilizó directamente dentro del código.\
+    (INE), pero no se utilizó directamente dentro del código.
 -   Se documentó la eliminación de `filter_$` como paso permanente (debe
-    reflejarse en versiones futuras del README).\
+    reflejarse en versiones futuras del README).
 -   El script es modular y puede adaptarse fácilmente si se agregan años
-    adicionales al dataset.\
--   Se trabajó en entorno **Colab y local (RStudio)** sin dependencias
-    externas fuera de las librerías mencionadas.
+    adicionales al dataset.
 
 ------------------------------------------------------------------------
 

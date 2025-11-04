@@ -59,10 +59,15 @@ for (i in anios) {
 
 df_final <- bind_rows(mget(paste0("df_", anios)))
 
-#### Apriori ####
 
-reglas<- apriori(df_final[,-1], parameter = list(support=0.2, confidence = 0.5))
+#### Apriori ####
+## filtrando unicamente por hombre
+df_final_h = df_final[df_final$sexo_inf == 1,]
+
+reglas<- apriori(df_final_h[, !names(df_final_h) %in% c('num_corre', 'sexo_inf')], parameter = list(support=0.2, confidence = 0.5))
 inspect(reglas[0:130])
 
 reglas<- sort(reglas, by = "support", decreasing = TRUE)
 inspect(reglas[0:130])
+
+

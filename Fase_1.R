@@ -1,6 +1,7 @@
 library(readxl)
 library(dplyr)
 library(stringi)
+library(arules)
 
 ruta<- "C:/Users/rodri/OneDrive/Documentos/Maestria/Cuarto_trimestre/Mineria de datos/Proyecto/datasets"
 
@@ -44,7 +45,7 @@ for (i in anios) {
     rename_with(~ gsub("subg_primarios|subg_principales", "subg_principales", .x)) %>%
     rename_with(~ gsub("g_primarios", "g_primarios", .x))
   
-  df <- df %>% select(-any_of(c("edad_quinquenales", "ocupacionhabitual")))
+  df <- df %>% select(-any_of(c("edad_quinquenales", "ocupacionhabitual", "filter_$")))
   
   cols_a_texto <- c("area_geo_inf")
   for (col in cols_a_texto) {
@@ -58,4 +59,10 @@ for (i in anios) {
 
 df_final <- bind_rows(mget(paste0("df_", anios)))
 
+#### Apriori ####
 
+reglas<- apriori(df_final[,-1], parameter = list(support=0.2, confidence = 0.5))
+inspect(reglas[0:130])
+
+reglas<- sort(reglas, by = "support", decreasing = TRUE)
+inspect(reglas[0:130])

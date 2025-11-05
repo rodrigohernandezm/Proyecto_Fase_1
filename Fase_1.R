@@ -61,14 +61,20 @@ df_final <- bind_rows(mget(paste0("df_", anios)))
 
 
 #### Apriori ####
+
+
+reglas<- apriori(df_final[, !names(df_final) %in% c('num_corre')], parameter = list(support=0.2, confidence = 0.5))
+reglas<- sort(reglas, by = "support", decreasing = TRUE)
+inspect(reglas[0:50])
+
 ## filtrando unicamente por hombre
 df_final_h = df_final[df_final$sexo_inf == 1,]
 
-reglas<- apriori(df_final_h[, !names(df_final_h) %in% c('num_corre', 'sexo_inf')], parameter = list(support=0.2, confidence = 0.5))
-inspect(reglas[0:130])
+reglas_h<- apriori(df_final_h[, !names(df_final_h) %in% c('num_corre', 'sexo_inf')], parameter = list(support=0.2, confidence = 0.5))
+inspect(reglas_h[0:130])
 
-reglas<- sort(reglas, by = "support", decreasing = TRUE)
-inspect(reglas[0:130])
+reglas_h<- sort(reglas_h, by = "support", decreasing = TRUE)
+inspect(reglas_h[0:130])
 
 ### filtrando solo a los ebrios
 df_final <- df_final %>% select(-nacionalidad_inf)
@@ -79,5 +85,19 @@ reglas_e<- apriori(df_final_e[, !names(df_final_e) %in% c('num_corre', 'est_ebri
 reglas_e<- sort(reglas_e, by = "support", decreasing = TRUE)
 inspect(reglas_e[0:130])
 
+### reglas eliminando lo valores ignorados de algunas columnas
+
+df_sin_ig <- df_final %>%
+  filter(
+    falta_inf != 9,
+    sexo_inf != 9,
+    cond_alfabetismo_inf != 9,
+    est_conyugal_inf != 9,
+    grupo_etnico_inf != 9,
+    est_ebriedad_inf != 9
+  )
+
+reglas_sin_ig<- apriori(df_sin_ig, parameter = list(support=0.2, confidence = 0.5))
+inspect(reglas_sin_ig[0:130])
 
 

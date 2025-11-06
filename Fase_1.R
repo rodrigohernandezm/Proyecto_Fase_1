@@ -230,6 +230,20 @@ plot(1:10, wss, type = "b", pch = 19, frame = FALSE,
      ylab = "Suma total de cuadrados intra-cluster (WSS)",
      main = "Método del Codo")
 
+####### metodo numerico para numero de clusters
+
+info_k_dummy_no_na <- info_k_dummy %>%
+  select_if(is.numeric) %>%
+  na.omit()
+
+matriz_cov <- cov(info_k_dummy_no_na)
+
+eigen_vals <- eigen(matriz_cov)$values
+print(eigen_vals)
+
+num_factores <- sum(eigen_vals > 1)
+cat("Número de componentes con eigenvalue > 1:", num_factores, "\n")
+
 
 #####
 pca <- prcomp(info_scaled, scale. = FALSE)

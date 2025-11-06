@@ -110,12 +110,50 @@ reglas_2<- apriori(df_final[, !names(df_final) %in% c('num_corre', 'g_edad_60yma
 inspect(reglas_2[0:130])
 
 
+########FP Growth
 
+df_final_fp<- df_final %>%
+  filter(
+    falta_inf != 9,
+    sexo_inf != 9,
+    cond_alfabetismo_inf != 9,
+    est_conyugal_inf != 9,
+    grupo_etnico_inf != 9,
+    est_ebriedad_inf != 9,
+    niv_escolaridad_inf != 9
+  )
 
+## filtrando unicamente genero femenino y eliminando los valores ignorados
 
+df_final_fp<- df_final_fp[df_final_fp$sexo_inf == 2,c("num_corre", "depto_boleta", "muni_boleta","mes_boleta","ano_boleta","falta_inf",
+                                                      "edad_inf", "grupo_etnico_inf","est_conyugal_inf", "nacimiento_inf",
+                                                      "cond_alfabetismo_inf", "niv_escolaridad_inf", "area_geo_inf", "depto_nacimiento_inf")]
 
+reglas_fp <- fim4r(df_final_fp, method="fpgrowth", target ="rules", supp =0.2, conf=0.5)
+rf <- as(reglas_fp, "data.frame")
+rf
 
+## crear variable quinquenal
 
+df_final_fp <- df_final_fp %>%
+  mutate(
+    edad_quinquenal = cut(
+      edad_inf,
+      breaks = seq(0, 100, by = 5),  
+      labels = paste(seq(0, 95, by = 5), seq(4, 99, by = 5), sep = "-"),
+      include.lowest = TRUE,
+      right = TRUE
+    )
+  )
+
+### regla 2
+df_final_fp_2<- df_final_fp[,c("edad_quinquenal", "num_corre", "depto_boleta", "muni_boleta","mes_boleta","ano_boleta","falta_inf",
+                                                      "edad_inf", "grupo_etnico_inf","est_conyugal_inf", "nacimiento_inf",
+                                                      "cond_alfabetismo_inf", "niv_escolaridad_inf", "area_geo_inf", "depto_nacimiento_inf")]
+
+reglas_fp_2<- fim4r(df_final_fp_2, method="fpgrowth", target ="rules", supp =0.2, conf=0.5)
+rf_2<- as(reglas_fp_2, "data.frame")
+rf_2
 
 
 

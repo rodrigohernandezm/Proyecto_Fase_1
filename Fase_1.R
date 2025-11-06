@@ -3,6 +3,10 @@ library(dplyr)
 library(stringi)
 library(arules)
 
+library(fastDummies)
+library(ggplot2)
+
+
 ruta<- "C:/Users/rodri/OneDrive/Documentos/Maestria/Cuarto_trimestre/Mineria de datos/Proyecto/datasets"
 
 archivos<- list.files(path = ruta, pattern = "\\.xlsx$", full.names = TRUE)
@@ -156,14 +160,57 @@ rf_2<- as(reglas_fp_2, "data.frame")
 rf_2
 
 
+#### kmeans
+
+var_kmeans<- c("edad_quinquenal", "depto_boleta", "muni_boleta","mes_boleta","ano_boleta","falta_inf",
+              "edad_inf", "grupo_etnico_inf","est_conyugal_inf", "nacimiento_inf",
+              "cond_alfabetismo_inf", "niv_escolaridad_inf", "area_geo_inf", "depto_nacimiento_inf")
+
+df_final_km<- df_final %>%
+  filter(
+    falta_inf != 9,
+    sexo_inf != 9,
+    cond_alfabetismo_inf != 9,
+    est_conyugal_inf != 9,
+    grupo_etnico_inf != 9,
+    est_ebriedad_inf != 9,
+    niv_escolaridad_inf != 9
+  )
+
+df_final_km<- df_final_km%>%
+  mutate(
+    edad_quinquenal = cut(
+      edad_inf,
+      breaks = seq(0, 100, by = 5),  
+      labels = paste(seq(0, 95, by = 5), seq(4, 99, by = 5), sep = "-"),
+      include.lowest = TRUE,
+      right = TRUE
+    )
+  )
 
 
+df_final_km<- df_final_km[,var_kmeans]
+
+## variables categoricas
+
+cat_vars <- c("edad_quinquenal", "depto_boleta", "muni_boleta",  "mes_boleta", "ano_boleta", "falta_inf", "grupo_etnico_inf","est_conyugal_inf", "nacimiento_inf",
+              "cond_alfabetismo_inf", "niv_escolaridad_inf", "area_geo_inf", "depto_nacimiento_inf")
 
 
+info_k_dummy<- dummy_cols(
+  df_final_km,
+  select_columns = cat_vars,
+  remove_first_dummy = TRUE,   
+  remove_selected_columns = TRUE  
+)
 
+names(info_k_dummy) <- gsub("__", "_", names(info_k_dummy))
+names(info_k_dummy) <- gsub("_([A-Za-z0-9]+)$", ".\\1", names(info_k_dummy))
+names(info_k_dummy) <- gsub("_", ".", names(info_k_dummy))
 
-
-
+info_scaled <- scale(info_k_dummy)
+cluster<- kmeans(info_scaled, centers = 4)
+pca <- prcomp(info_scaled, scale. = FALSE)
 
 
 

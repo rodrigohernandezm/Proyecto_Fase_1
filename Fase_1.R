@@ -196,7 +196,7 @@ df_final_km<- df_final_km[,var_kmeans]
 cat_vars <- c("edad_quinquenal", "depto_boleta", "muni_boleta",  "mes_boleta", "ano_boleta", "falta_inf", "grupo_etnico_inf","est_conyugal_inf", "nacimiento_inf",
               "cond_alfabetismo_inf", "niv_escolaridad_inf", "area_geo_inf", "depto_nacimiento_inf")
 
-
+## convertir columnas categoricas a dummies
 info_k_dummy<- dummy_cols(
   df_final_km,
   select_columns = cat_vars,
@@ -204,13 +204,42 @@ info_k_dummy<- dummy_cols(
   remove_selected_columns = TRUE  
 )
 
+## asignarle nombre adecuado a las nuevas variables dummies
+
 names(info_k_dummy) <- gsub("__", "_", names(info_k_dummy))
 names(info_k_dummy) <- gsub("_([A-Za-z0-9]+)$", ".\\1", names(info_k_dummy))
 names(info_k_dummy) <- gsub("_", ".", names(info_k_dummy))
 
+## normalizacion 
+
 info_scaled <- scale(info_k_dummy)
-cluster<- kmeans(info_scaled, centers = 4)
+
+##### evaluacion de cantidad de clusters
+library(factoextra)
+
+fviz_nbclust(info_k_dummy, kmeans, method = "wss") +
+  labs(title = "Método del codo para determinar k óptimo") +
+  theme_minimal()
+
+set.seed(123)
+wss <- c()
+for (k in 1:10) {
+  kmeans_result <- kmeans(info_k_dummy, centers = k, nstart = 10)
+  wss[k] <- kmeans_result$tot.withinss
+}
+
+plot(1:10, wss, type = "b", pch = 19, frame = FALSE,
+     xlab = "Número de clusters K",
+     ylab = "Suma total de cuadrados intra-cluster (WSS)",
+     main = "Método del Codo")
+
+
+#####
 pca <- prcomp(info_scaled, scale. = FALSE)
+
+
+
+cluster<- kmeans(info_scaled, centers = 4)
 
 
 

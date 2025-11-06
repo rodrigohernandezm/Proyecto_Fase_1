@@ -5,9 +5,10 @@ library(arules)
 
 library(fastDummies)
 library(ggplot2)
-
+library(factoextra)
 
 ruta<- "C:/Users/rodri/OneDrive/Documentos/Maestria/Cuarto_trimestre/Mineria de datos/Proyecto/datasets"
+ruta<- "C:/Users/rhernandez/Proyecto_Fase_1/datasets"
 
 archivos<- list.files(path = ruta, pattern = "\\.xlsx$", full.names = TRUE)
 
@@ -29,8 +30,6 @@ df_2021<- as.data.frame(df_2021)
 df_2022<- as.data.frame(df_2022)
 df_2023<- as.data.frame(df_2023)
 df_2024<- as.data.frame(df_2024)
-
-df_final<- bind_rows(df_2018, df_2019, df_2020, df_2021, df_2022, df_2023, df_2024)
 
 ### voy a usar informacion desde 2020 para quitar el efecto pandemia ademas que la informacion no es la misma
 length(colnames(df_2024))
@@ -215,8 +214,6 @@ names(info_k_dummy) <- gsub("_", ".", names(info_k_dummy))
 info_scaled <- scale(info_k_dummy)
 
 ##### evaluacion de cantidad de clusters
-library(factoextra)
-
 fviz_nbclust(info_k_dummy, kmeans, method = "wss") +
   labs(title = "Método del codo para determinar k óptimo") +
   theme_minimal()

@@ -268,7 +268,7 @@ if (nrow(info_scaled) > 2) {
 
 pca <- prcomp(info_scaled, scale. = FALSE)
 
-loadings <- pca$rotation[, 1:2] 
+loadings <- pca$rotation[, 1:2]
 top_pc1 <- names(sort(abs(loadings[,1]), decreasing = TRUE))[1:3]
 top_pc2 <- names(sort(abs(loadings[,2]), decreasing = TRUE))[1:3]
 

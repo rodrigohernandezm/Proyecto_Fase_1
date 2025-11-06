@@ -100,4 +100,32 @@ df_sin_ig <- df_final %>%
 reglas_sin_ig<- apriori(df_sin_ig, parameter = list(support=0.2, confidence = 0.5))
 inspect(reglas_sin_ig[0:130])
 
+### inspeccionar reglas relacionadas a años
+
+inspect(subset(reglas_sin_ig, grepl("ano_boleta", labels(rhs(reglas_sin_ig)), ignore.case = TRUE)))
+
+## filtrando algunas columnas
+##regla 4
+reglas_2<- apriori(df_final[, !names(df_final) %in% c('num_corre', 'g_edad_60ymas', 'nacimiento_inf', 'g_primarios', 'gran_grupos')], parameter = list(support=0.2, confidence = 0.5))
+inspect(reglas_2[0:130])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -1,105 +1,58 @@
-# 📊 Proyecto de Integración, Limpieza y Consolidación de Faltas Judiciales (2018--2024)
+# README – Análisis de Faltas Judiciales (Actualización Apriori)
 
-Este proyecto automatiza la **lectura, estandarización, limpieza y
-unificación** de las bases anuales de **faltas judiciales de Guatemala**
-publicadas por el **INE**.\
-El objetivo técnico es generar una **base consolidada** de los años
-**2020--2024**, lista para análisis posteriores.
+## 🧩 Descripción general
+Este proyecto implementa un flujo de análisis para identificar patrones de asociación en registros de **faltas judiciales** utilizando el algoritmo **Apriori** del paquete `arules` en R. Se consolidan múltiples bases anuales (2018–2024), se normalizan los nombres de variables y se realizan distintos escenarios de minería de reglas de asociación.
 
-------------------------------------------------------------------------
+## ⚙️ Pasos principales del flujo
 
-## 📁 Estructura del Proyecto
+1. **Lectura y consolidación de bases**  
+   - Se importan automáticamente todos los archivos `.xlsx` de la carpeta `datasets` y se asignan nombres dinámicos según el año.  
+   - Se combinan las bases 2018–2024 en un solo `data.frame` (`df_final`).
 
-    /Proyecto_Faltas_Judiciales/
-    │
-    ├── datasets/                         # Archivos fuente en formato Excel
-    │   ├── faltas_2018.xlsx
-    │   ├── faltas_2019.xlsx
-    │   ├── faltas_2020.xlsx
-    │   ├── faltas_2021.xlsx
-    │   ├── faltas_2022.xlsx
-    │   ├── faltas_2023.xlsx
-    │   └── faltas_2024.xlsx
-    │
-    ├── script_limpieza.R                 # Script principal de procesamiento
-    └── README.md                         # Documento técnico
+2. **Depuración y normalización**  
+   - Se unifican nombres de columnas con funciones `tolower()` y `stri_trans_general()` para eliminar acentos y mayúsculas inconsistentes.  
+   - Se renombraron variables equivalentes (`subg_principales`, `gran_grupos`, etc.) y se eliminaron columnas no uniformes entre años (`edad_quinquenales`, `ocupacionhabitual`, `filter_$`).  
+   - Se transformaron a texto las columnas necesarias para evitar errores de tipo en Apriori.
 
-------------------------------------------------------------------------
+3. **Selección de periodo de estudio (2020–2024)**  
+   - Se excluyen años anteriores a 2020 para evitar el sesgo del período de pandemia y mantener la consistencia en las variables registradas.
 
-## ⚙️ Requisitos
+4. **Filtrado adicional**  
+   - Se eliminó la variable `nacionalidad_inf` por no aportar valor analítico.  
+   - Se generaron versiones filtradas del dataset para casos específicos:  
+     - `df_final_h`: solo infractores hombres (`sexo_inf == 1`).  
+     - `df_final_e`: solo infractores en estado de ebriedad (`est_ebriedad_inf == 1`).  
+     - `df_sin_ig`: sin valores ignorados (`== 9`) en variables clave (`falta_inf`, `sexo_inf`, `cond_alfabetismo_inf`, `est_conyugal_inf`, `grupo_etnico_inf`, `est_ebriedad_inf`).
 
-### 🧩 Paquetes utilizados
+5. **Ejecución del algoritmo Apriori**  
+   - Configuración estándar: `support = 0.2`, `confidence = 0.5`.  
+   - Se generaron conjuntos de reglas para:
+     - El conjunto completo (`df_final`)
+     - Hombres (`df_final_h`)
+     - Ebrios (`df_final_e`)
+     - Sin ignorados (`df_sin_ig`)
+   - En cada escenario, las reglas se ordenaron por *support* y se inspeccionaron los primeros 130 resultados.
 
-``` r
-install.packages(c("readxl", "dplyr", "stringi", "arules"))
+6. **Exploraciones adicionales**  
+   - Se aplicó un filtro para revisar reglas relacionadas con `ano_boleta`.  
+   - Se generó un conjunto adicional (`reglas_2`) excluyendo variables redundantes (`g_edad_60ymas`, `nacimiento_inf`, `g_primarios`, `gran_grupos`) para observar efectos sobre la estructura de las reglas.
+
+## 🧾 Cambios realizados desde la versión anterior
+- Se eliminó la variable `nacionalidad_inf` del análisis principal.  
+- Se añadió la exclusión de valores `9` (ignorados) en varias variables clave antes de generar reglas.  
+- Se agregó un nuevo conjunto de reglas (`reglas_2`) con exclusión de variables de edad y jerarquías redundantes.  
+- Se incorporó un análisis complementario de reglas relacionadas con el año (`ano_boleta`).  
+- Se definió como **Regla 4** la relación `{area_geo_inf=2} => {falta_inf=[3,5]}`, destacando su valor interpretativo pese a un *lift* ligeramente menor a 1.
+
+## 📦 Librerías utilizadas
+```r
+library(readxl)
+library(dplyr)
+library(stringi)
+library(arules)
 ```
 
-### 💻 Requisitos del sistema
-
--   R versión 4.2 o superior\
--   RStudio o entorno compatible\
--   Carpeta con permisos de lectura/escritura
-
-------------------------------------------------------------------------
-
-## 🚀 Flujo de Ejecución
-
-1.  **Lectura automática de archivos**
-    -   Se obtienen todos los archivos `.xlsx` de la carpeta `datasets/`
-        mediante `list.files()`.
-    -   Cada archivo se asigna dinámicamente como `df_YYYY` según el
-        año.
-2.  **Estandarización de columnas**
-    -   Conversión de nombres a minúsculas y sin acentos
-        (`stringi::stri_trans_general`).
-    -   Uniformización de columnas equivalentes (`gran_grupos`,
-        `subg_principales`, `g_primarios`).
-3.  **Limpieza de datos**
-    -   Se eliminan columnas que no aportan valor analítico o que
-        contienen información redundante:
-        -   `edad_quinquenales`
-        -   `ocupacionhabitual`
-        -   `filter_$`
-        -   `nacionalidad_inf` (alta homogeneidad en los valores)
-    -   Se corrigen tipos de datos inconsistentes (ej. `area_geo_inf`
-        convertida a texto).
-4.  **Unificación de bases**
-    -   Se combinan los data frames anuales usando `bind_rows()` en un
-        único objeto `df_final`.
-    -   Se conservan únicamente los años **2020 a 2024** para mantener
-        consistencia estructural.
-5.  **Validaciones básicas**
-    -   Verificación de cantidad de registros por año.
-    -   Revisión de presencia de valores `NA` por columna.
-    -   Confirmación de tipos (`str(df_final)`).
-
-------------------------------------------------------------------------
-
-## 📦 Salida esperada
-
-El objeto `df_final` contiene los registros limpios y consolidados.\
-Puede exportarse a CSV mediante:
-
-``` r
-write.csv(df_final, "df_final.csv", row.names = FALSE, fileEncoding = "UTF-8")
-```
-
-------------------------------------------------------------------------
-
-## 🧠 Observaciones técnicas
-
--   Se comprobó la existencia de un **diccionario de variables oficial**
-    (INE), pero no se utilizó directamente dentro del código.
--   Se documentó la eliminación de `filter_$` como paso permanente (debe
-    reflejarse en versiones futuras del README).
--   El script es modular y puede adaptarse fácilmente si se agregan años
-    adicionales al dataset.
-
-------------------------------------------------------------------------
-
-## 👨‍💻 Autor
-
-**Rodrigo Eduardo Hernández Morales**\
-Maestría en Ciencia de la Computación -- Especialidad en Ciencia de
-Datos\
-Universidad de San Carlos de Guatemala
+## 📊 Próximos pasos
+- Filtrar reglas no triviales mediante `lift > 1 & confidence < 1` para priorizar asociaciones relevantes.  
+- Documentar las reglas finales seleccionadas (Reglas 1–4) en el informe interpretativo.  
+- Explorar reglas específicas por año y región con subconjuntos adicionales de datos.

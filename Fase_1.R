@@ -213,7 +213,7 @@ names(info_k_dummy) <- gsub("_", ".", names(info_k_dummy))
 
 info_scaled <- scale(info_k_dummy)
 
-##### evaluacion de cantidad de clusters
+##### evaluacion de cantidad de clusters #####
 fviz_nbclust(info_k_dummy, kmeans, method = "wss") +
   labs(title = "Método del codo para determinar k óptimo") +
   theme_minimal()
@@ -230,7 +230,7 @@ plot(1:10, wss, type = "b", pch = 19, frame = FALSE,
      ylab = "Suma total de cuadrados intra-cluster (WSS)",
      main = "Método del Codo")
 
-####### metodo numerico para numero de clusters
+####### metodo numerico para numero de clusters ####
 
 info_k_dummy_no_na <- info_k_dummy %>%
   select_if(is.numeric) %>%
@@ -246,11 +246,60 @@ cat("Número de componentes con eigenvalue > 1:", num_factores, "\n")
 
 
 #####
+
+info_numerico <- info_k_dummy_no_na %>%
+  select_if(is.numeric)
+
+info_numerico <- info_numerico[, apply(info_numerico, 2, var, na.rm = TRUE) != 0]
+info_numerico <- info_numerico[complete.cases(info_numerico), ]
+info_numerico <- info_numerico[apply(info_numerico, 1, function(x) all(is.finite(x))), ]
+
+nrow(info_numerico)
+
+info_scaled <- scale(info_numerico)
+
+if (nrow(info_scaled) > 2) {
+  set.seed(123)
+  cluster<- kmeans(info_scaled, centers = 2, nstart = 20)
+  print(table(cluster$cluster))
+} else {
+  print("No hay suficientes filas válidas para agrupar.")
+}
+
 pca <- prcomp(info_scaled, scale. = FALSE)
 
+loadings <- pca$rotation[, 1:2] 
+top_pc1 <- names(sort(abs(loadings[,1]), decreasing = TRUE))[1:3]
+top_pc2 <- names(sort(abs(loadings[,2]), decreasing = TRUE))[1:3]
+
+x_lab <- paste0("PC1 (", paste(top_pc1, collapse = ", "), ")")
+y_lab <- paste0("PC2 (", paste(top_pc2, collapse = ", "), ")")
+
+pca_data <- data.frame(
+  PC1 = pca$x[,1],
+  PC2 = pca$x[,2],
+  cluster = as.factor(cluster$cluster)
+)
+
+centroids_pca <- as.data.frame(
+  predict(pca, newdata = cluster$centers)[,1:2]
+)
+centroids_pca$cluster <- factor(1:nrow(centroids_pca))
+
+ggplot(pca_data, aes(x = PC1, y = PC2, color = cluster)) +
+  geom_point(size = 2, alpha = 0.7) +
+  geom_point(data = centroids_pca, aes(x = PC1, y = PC2),
+             color = "black", shape = 8, size = 4) +
+  geom_text(data = centroids_pca, aes(label = paste("Cluster", cluster)),
+            color = "black", vjust = -1) +
+  labs(
+    title = "K-means visualizado con PCA",
+    x = x_lab,
+    y = y_lab
+  ) +
+  theme_minimal()
 
 
-cluster<- kmeans(info_scaled, centers = 4)
 
 
 

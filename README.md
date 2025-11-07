@@ -1,8 +1,8 @@
 # 📊 Proyecto de Integración, Limpieza y Minería de Reglas de Asociación (Faltas Judiciales 2018–2024)
 
-Este repositorio contiene un flujo de trabajo completo en **R** para integrar bases anuales de faltas judiciales, limpiarlas y aplicar técnicas de **minería de reglas de asociación** y **segmentación (k-means)**. 
+Este repositorio contiene un flujo de trabajo completo en **R** para integrar bases anuales de faltas judiciales, limpiarlas y aplicar técnicas de **minería de reglas de asociación** y **segmentación (k-means)**.
 
-El script principal (`Fase_1.R`) automatiza la **lectura, estandarización, consolidación y análisis** de archivos Excel (`.xlsx`) que registran las faltas judiciales. El objetivo final es generar un conjunto unificado de datos (2020–2024) y aplicar los algoritmos **Apriori** y **FP-Growth** para descubrir patrones relevantes.
+El script principal (`Fase_1.R`) automatiza la **lectura, estandarización, consolidación y análisis** de archivos Excel (`.xlsx`) que registran las faltas judiciales. El objetivo final es generar un conjunto unificado de datos (2020–2024) y dejar listo un entorno reproducible para que el ingeniero pueda ejecutar los algoritmos de reglas y clustering con todos los preprocesamientos necesarios.
 
 ---
 
@@ -77,8 +77,8 @@ install.packages(c(
    - Desde terminal: ubíquese en el directorio del repositorio y ejecute `Rscript Fase_1.R`.
 
 4. **Verificar la salida en consola**
-   - Se mostrarán resúmenes de los clusters k-means y listados de reglas (`inspect(...)`).
-   - El script genera una gráfica `kmeans.png` en el directorio raíz (si se ejecuta en un entorno con capacidades gráficas).
+   - Se mostrarán mensajes que confirman la creación de tablas intermedias y la ejecución de los cálculos estadísticos (PCA, matriz de covarianza, k-means).
+   - El script genera una gráfica `kmeans.png` en el directorio raíz (si se ejecuta en un entorno con capacidades gráficas) para visualizar los clusters con las transformaciones ya aplicadas.
 
 5. **Exportación opcional**
    - Para guardar la tabla final en CSV, ejecute al final de la sesión:
@@ -157,10 +157,10 @@ install.packages(c(
    Se enfoca en mujeres sin valores ignorados, crea grupos quinquenales de edad y ejecuta `fim4r` como alternativa más eficiente para reglas de asociación.
 
 7. **Clustering k-means**
-   - Se generan variables dummy con `fastDummies::dummy_cols`.
-   - Se normalizan las variables (`scale`).
+   - Se generan variables dummy con `fastDummies::dummy_cols` para convertir las categorías en columnas binarias antes del modelado.
+   - Se normalizan las variables (`scale`) para que el cálculo de distancias no se sesgue por escalas distintas.
    - Se aplica `kmeans` con 2 centros y se evalúa la importancia de las componentes principales (`prcomp`).
-   - Se grafica el resultado con `ggplot2`, resaltando los centroides y etiquetas de los componentes principales más influyentes.
+   - Se grafica el resultado con `ggplot2`, resaltando los centroides y etiquetas de los componentes principales más influyentes, únicamente como verificación visual de las transformaciones.
 
 > 📌 Los objetos clave disponibles al final son: `df_final`, `df_final_h`, `df_final_e`, `df_sin_ig`, `reglas`, `reglas_h`, `reglas_e`, `reglas_sin_ig`, `reglas_fp`, `reglas_fp_2`, `cluster` y `pca`.
 
@@ -174,37 +174,17 @@ install.packages(c(
 
 ---
 
-## 🔍 Interpretación de resultados
+## 🧮 Manipulación de datos y cálculos estadísticos clave
 
-### Reglas de asociación (Apriori y FP-Growth)
+- **Consolidación temporal:** los `data.frame` anuales se combinan con `bind_rows`, conservando una columna de referencia al año. Esto permite aplicar filtros específicos y garantiza que la estructura sea homogénea antes de crear dummies o agrupar categorías.
+- **Normalización de texto:** se usa `stringi::stri_trans_general` para remover tildes y homogeneizar mayúsculas/minúsculas, evitando duplicados originados por inconsistencias ortográficas.
+- **Codificación categórica:** `fastDummies::dummy_cols` transforma cada variable categórica relevante en columnas binarias. Este paso es requisito para calcular distancias euclidianas en k-means y para que FP-Growth trabaje con ítems discretos.
+- **Matrices filtradas:** los subconjuntos (`df_final_h`, `df_final_e`, `df_sin_ig`, `df_final_fp`) se construyen con `filter` para aislar condiciones específicas. Estos filtros permiten recalcular reglas sin contaminación de valores ignorados o categorías irrelevantes.
+- **Matriz de covarianza y PCA:** antes del clustering se calcula `prcomp` sobre las variables normalizadas, lo que genera internamente la matriz de covarianza y sus autovalores. Esta matriz se usa para identificar las componentes que retienen mayor varianza, reemplazando la necesidad de una gráfica de codo tradicional. El cálculo directo fue preferido porque automatiza la selección de componentes en lugar de depender de una inspección visual.
+- **Selección de componentes:** el script revisa los eigenvalues (`pca$sdev^2`) para quedarse con aquellas componentes con varianza significativa. Esta lógica reduce dimensionalidad y disminuye el costo computacional del k-means sin perder información clave.
+- **Clustering reproducible:** al ejecutar `set.seed(123)` y `kmeans` sobre las componentes principales, el flujo garantiza que cada corrida produzca la misma asignación de clusters, algo útil para pruebas locales del ingeniero.
 
-- **Soporte (`support = 0.2`):** regla válida si aparece en ≥ 20 % de los registros.
-- **Confianza (`confidence = 0.5`):** al menos 50 % de probabilidad de que la consecuencia ocurra dado el antecedente.
-- Se recomienda inspeccionar las reglas con mayor `lift` para identificar asociaciones no triviales. Ejemplo típico encontrado:
-
-  ```
-  {area_geo_inf=2} => {falta_inf=[3,5]}
-  support = 0.2419 | confidence = 0.7108 | lift = 0.9283
-  ```
-
-  Indica que en área rural las faltas de grupos 3–5 son frecuentes, aunque el `lift` cercano a 1 sugiere una relación acorde a la media general.
-
-### Segmentos analizados
-
-| Dataset        | Filtro aplicado                           | Objetivo                                 |
-|----------------|-------------------------------------------|-------------------------------------------|
-| `df_final_h`   | `sexo_inf == 1`                           | Reglas específicas para infractores hombres |
-| `df_final_e`   | `est_ebriedad_inf == 1`                   | Patrones vinculados al consumo de alcohol  |
-| `df_sin_ig`    | Exclusión de valores 9 en variables clave | Depurar sesgos por respuestas ignoradas    |
-| `df_final_fp`  | Mujeres sin valores ignorados             | Ejecución de FP-Growth focalizada          |
-
-Cada subconjunto permite comparar patrones y validar la robustez de las reglas.
-
-### Clustering k-means
-
-- Se generan variables dummy y se normalizan para evitar sesgos por escala.
-- Se determina el número de componentes principales con eigenvalues > 1 para interpretar la varianza retenida.
-- Los resultados (`cluster` y gráfico PCA) ayudan a identificar segmentos homogéneos de infractores según variables demográficas.
+> ℹ️ Cada bloque está documentado en `Fase_1.R` con comentarios que indican el objetivo del cálculo, de forma que cualquier usuario pueda activar o desactivar secciones según sus necesidades sin perder la consistencia del preprocesamiento.
 
 ---
 
@@ -232,10 +212,10 @@ Cada subconjunto permite comparar patrones y validar la robustez de las reglas.
 
 5. **Actualizar la variable `ruta`** y ejecutar el script como se indicó anteriormente.
 
-6. **Validar resultados**
-   - Revise los data frames resultantes (`View(df_final)` en RStudio).
-   - Analice las reglas más importantes: `inspect(head(reglas, 10))`.
-   - Guarde evidencia (capturas de la consola o gráficos) para su informe académico.
+6. **Validar transformaciones**
+   - Revise los data frames resultantes (`View(df_final)` en RStudio) para comprobar que las columnas dummy y los filtros se hayan aplicado correctamente.
+   - Inspeccione los objetos intermedios (`str(df_final_dummy)`, `head(pca$x)`) para validar la normalización y la reducción de dimensionalidad.
+   - Compruebe que la matriz de covarianza se generó sin `NA` mediante `cov(na.omit(df_final_dummy))` si se requiere diagnosticar el PCA.
 
 > ✅ La estructura es reproducible en cualquier entorno siempre que las rutas y permisos sean correctos.
 

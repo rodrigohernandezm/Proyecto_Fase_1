@@ -1,7 +1,8 @@
 # 📊 Proyecto de Integración, Limpieza y Minería de Reglas de Asociación (Faltas Judiciales 2018–2024)
 
-Este proyecto automatiza la **lectura, estandarización, consolidación y análisis de asociación** de bases anuales de datos sobre **faltas judiciales**, originalmente almacenadas en archivos Excel (`.xlsx`).  
-El objetivo final es generar un conjunto unificado de datos (2020–2024) y aplicar el algoritmo **Apriori** del paquete `arules` para descubrir patrones relevantes.
+Este repositorio contiene un flujo de trabajo completo en **R** para integrar bases anuales de faltas judiciales, limpiarlas y aplicar técnicas de **minería de reglas de asociación** y **segmentación (k-means)**. La documentación está pensada para que un catedrático pueda replicar los resultados en su propio equipo sin ambigüedades.
+
+El script principal (`Fase_1.R`) automatiza la **lectura, estandarización, consolidación y análisis** de archivos Excel (`.xlsx`) que registran las faltas judiciales. El objetivo final es generar un conjunto unificado de datos (2020–2024) y aplicar los algoritmos **Apriori** y **FP-Growth** para descubrir patrones relevantes.
 
 ---
 
@@ -19,7 +20,7 @@ El objetivo final es generar un conjunto unificado de datos (2020–2024) y apli
 │   ├── faltas_2023.xlsx
 │   └── faltas_2024.xlsx
 │
-├── script_apriori.R                  # Script principal (el que contiene todo el código de integración y análisis)
+├── Fase_1.R                          # Script principal con toda la lógica del proyecto
 └── README.md                         # Este archivo
 ```
 
@@ -27,147 +28,222 @@ El objetivo final es generar un conjunto unificado de datos (2020–2024) y apli
 
 ## ⚙️ Requisitos de ejecución
 
-### 🧩 Librerías necesarias
-
-Instalar los paquetes de R que el script requiere:
-
-```r
-install.packages(c("readxl", "dplyr", "stringi", "arules"))
-```
-
 ### 💻 Requisitos del sistema
 
-- R versión 4.2 o superior  
-- RStudio (recomendado para ejecución interactiva)  
-- Sistema operativo Windows o Linux/Mac (ajustando la ruta en `ruta`)  
-- Permisos de lectura en la carpeta de trabajo de OneDrive o local
+- **R 4.2 o superior.** El script utiliza sintaxis y paquetes que requieren versiones recientes.
+- **RStudio** (recomendado) o cualquier IDE/terminal que permita ejecutar scripts de R.
+- **Sistema operativo:** Windows, macOS o Linux. Se debe ajustar la variable `ruta` a la ubicación del directorio `datasets` en el sistema anfitrión.
+- **Permisos de lectura** sobre la carpeta que contiene los archivos Excel y permisos de escritura si se desean exportaciones.
+
+### 🧩 Librerías necesarias
+
+Ejecutar el siguiente bloque una única vez para instalar las dependencias:
+
+```r
+install.packages(c(
+  "readxl",      # Lectura de archivos .xlsx
+  "dplyr",       # Manipulación de datos
+  "stringi",     # Normalización de nombres y texto
+  "arules",      # Algoritmos Apriori y FP-Growth (fim4r)
+  "fastDummies", # Creación de variables dummy
+  "ggplot2",     # Visualización de resultados
+  "factoextra"   # Utilidades para análisis multivariado
+))
+```
+
+> 💡 Si su instalación de R está detrás de un proxy, configure la variable `https_proxy` antes de instalar paquetes.
 
 ---
 
 ## 🚀 Ejecución del script paso a paso
 
-1. **Colocar los archivos Excel** en la carpeta `datasets`, asegurando que sus nombres contengan el año (por ejemplo: `faltas_2021.xlsx`).
+1. **Preparar los archivos fuente**
+   - Copie los Excel anuales de faltas judiciales (2018–2024) dentro de `datasets/`.
+   - Cada archivo debe contener el año en su nombre (`faltas_2021.xlsx`, `faltas_2022.xlsx`, etc.). El script utiliza esa cadena de cuatro dígitos para identificar el año.
 
-2. **Definir la ruta de trabajo** en el script (ajustar a tu ruta local):
+2. **Configurar la ruta de trabajo**
+   - Abra `Fase_1.R` y edite la línea:
 
+     ```r
+     ruta <- "C:/Users/rodri/OneDrive/Documentos/Maestria/Cuarto_trimestre/Mineria de datos/Proyecto/datasets"
+     ```
+
+   - Sustituya el valor por la ruta absoluta hacia su carpeta `datasets`. Ejemplos por sistema operativo:
+     - **Windows:** `"D:/Proyectos/FaltasJudiciales/datasets"`
+     - **macOS/Linux:** `"/home/usuario/Proyecto_Fase_1/datasets"`
+
+3. **Ejecutar el script completo**
+   - Desde RStudio: abra `Fase_1.R`, seleccione *Source* (`Ctrl` + `Shift` + `Enter`).
+   - Desde terminal: ubíquese en el directorio del repositorio y ejecute `Rscript Fase_1.R`.
+
+4. **Verificar la salida en consola**
+   - Se mostrarán resúmenes de los clusters k-means y listados de reglas (`inspect(...)`).
+   - El script genera una gráfica `kmeans.png` en el directorio raíz (si se ejecuta en un entorno con capacidades gráficas).
+
+5. **Exportación opcional**
+   - Para guardar la tabla final en CSV, ejecute al final de la sesión:
+
+     ```r
+     write.csv(df_final, "df_final.csv", row.names = FALSE, fileEncoding = "UTF-8")
+     ```
+
+---
+
+## 🧠 Explicación detallada del código (`Fase_1.R`)
+
+1. **Carga de librerías**
    ```r
-   ruta <- "C:/Users/rodri/OneDrive/Documentos/Maestria/Cuarto_trimestre/Mineria de datos/Proyecto/datasets"
+   library(readxl)
+   library(dplyr)
+   library(stringi)
+   library(arules)
+   library(fastDummies)
+   library(ggplot2)
+   library(factoextra)
    ```
+   Estas dependencias cubren la lectura de Excel, manipulación de datos, normalización de texto, minería de reglas y clustering.
 
-3. **Ejecutar el script completo** en RStudio o desde la consola:
-
+2. **Lectura dinámica de archivos Excel**
    ```r
-   source("script_apriori.R")
+   archivos <- list.files(path = ruta, pattern = "\\.xlsx$", full.names = TRUE)
+   for (archivo in archivos) {
+     base <- basename(archivo)
+     anio <- regmatches(base, regexpr("\\d{4}", base))
+     name <- paste0("df_", anio)
+     datos <- read_excel(archivo)
+     assign(name, datos)
+   }
    ```
+   Cada archivo se convierte en un `data.frame` cuyo nombre sigue el patrón `df_<año>`.
 
-4. **El script realiza automáticamente:**
-   - Lectura de todos los `.xlsx` dentro de `ruta`.
-   - Extracción del año a partir del nombre del archivo.
-   - Creación de objetos `df_2018`, `df_2019`, ..., `df_2024`.
-   - Conversión a `data.frame` y unión de los años **2020–2024** (para eliminar el efecto pandemia y garantizar consistencia estructural).
-   - Limpieza de nombres de columnas (minúsculas, sin acentos, sin tildes).
-   - Renombrado de variables equivalentes:
-     - `subg_principales` y `subg_primarios` → `subg_principales`
-     - `gran_grupos` (unificación)
-   - Eliminación de columnas no homogéneas entre años:  
-     `edad_quinquenales`, `ocupacionhabitual`, `filter_$`
-   - Conversión de columnas relevantes a texto (`area_geo_inf`).
-   - Unión final de todas las bases en un solo `data.frame` llamado **`df_final`**.
+3. **Normalización y homologación de columnas (2020–2024)**
+   ```r
+   for (i in 2020:2024) {
+     df <- get(paste0("df_", i))
+     names(df) <- tolower(stri_trans_general(names(df), "Latin-ASCII"))
+     df <- df %>%
+       rename_with(~ gsub("subg_primarios|subg_principales", "subg_principales", .x)) %>%
+       rename_with(~ gsub("gran_grupos|gran_grupos", "gran_grupos", .x)) %>%
+       select(-any_of(c("edad_quinquenales", "ocupacionhabitual", "filter_$")))
+     df[["area_geo_inf"]] <- as.character(df[["area_geo_inf"]])
+     assign(paste0("df_", i), df)
+   }
+   df_final <- bind_rows(mget(paste0("df_", 2020:2024)))
+   ```
+   Se homogenizan nombres (sin acentos ni mayúsculas) y se eliminan columnas inconsistentes antes de unir los años válidos.
+
+4. **Minería de reglas de asociación (Apriori)**
+   ```r
+   reglas <- apriori(
+     df_final[, !names(df_final) %in% c("num_corre")],
+     parameter = list(support = 0.2, confidence = 0.5)
+   )
+   reglas <- sort(reglas, by = "support", decreasing = TRUE)
+   inspect(reglas[0:50])
+   ```
+   Se genera un conjunto de reglas con soporte ≥ 20 % y confianza ≥ 50 %, ordenadas por soporte para identificar patrones dominantes.
+
+5. **Segmentos específicos**
+   - `df_final_h`: filtra por infractores hombres (`sexo_inf == 1`).
+   - `df_final_e`: filtra por estado de ebriedad (`est_ebriedad_inf == 1`).
+   - `df_sin_ig`: excluye valores “9” (*Ignorado*) en variables clave.
+   Para cada subconjunto se vuelve a ejecutar `apriori` y se inspeccionan las reglas resultantes.
+
+6. **FP-Growth con `fim4r`**
+   ```r
+   df_final_fp <- df_final %>%
+     filter(...)
+   reglas_fp <- fim4r(df_final_fp, method = "fpgrowth", target = "rules", supp = 0.2, conf = 0.5)
+   ```
+   Se enfoca en mujeres sin valores ignorados, crea grupos quinquenales de edad y ejecuta `fim4r` como alternativa más eficiente para reglas de asociación.
+
+7. **Clustering k-means**
+   - Se generan variables dummy con `fastDummies::dummy_cols`.
+   - Se normalizan las variables (`scale`).
+   - Se aplica `kmeans` con 2 centros y se evalúa la importancia de las componentes principales (`prcomp`).
+   - Se grafica el resultado con `ggplot2`, resaltando los centroides y etiquetas de los componentes principales más influyentes.
+
+> 📌 Los objetos clave disponibles al final son: `df_final`, `df_final_h`, `df_final_e`, `df_sin_ig`, `reglas`, `reglas_h`, `reglas_e`, `reglas_sin_ig`, `reglas_fp`, `reglas_fp_2`, `cluster` y `pca`.
 
 ---
 
 ## 🧽 Limpieza y ajustes adicionales
 
-- Se eliminaron variables que no aportan valor analítico, como `nacionalidad_inf`.
-- Se filtraron los valores **“Ignorado” (9)** en columnas clave:
-  - `falta_inf`, `sexo_inf`, `cond_alfabetismo_inf`,  
-    `est_conyugal_inf`, `grupo_etnico_inf`, `est_ebriedad_inf`.
-
-El resultado de este paso se guarda en `df_sin_ig`, la base depurada para el análisis de reglas.
+- Se elimina `nacionalidad_inf` antes de ciertos análisis para evitar ruido.
+- Se filtran los valores **“Ignorado” (9)** en `falta_inf`, `sexo_inf`, `cond_alfabetismo_inf`, `est_conyugal_inf`, `grupo_etnico_inf`, `est_ebriedad_inf` y `niv_escolaridad_inf` en los subconjuntos correspondientes.
+- Se generan variables quinquenales de edad (`edad_quinquenal`) para análisis demográfico más fino.
 
 ---
 
-## 🔍 Ejecución del algoritmo Apriori
+## 🔍 Interpretación de resultados
 
-### Configuración general
+### Reglas de asociación (Apriori y FP-Growth)
 
-```r
-reglas <- apriori(df_final[, !names(df_final) %in% c('num_corre')],
-                  parameter = list(support = 0.2, confidence = 0.5))
-```
+- **Soporte (`support = 0.2`):** regla válida si aparece en ≥ 20 % de los registros.
+- **Confianza (`confidence = 0.5`):** al menos 50 % de probabilidad de que la consecuencia ocurra dado el antecedente.
+- Se recomienda inspeccionar las reglas con mayor `lift` para identificar asociaciones no triviales. Ejemplo típico encontrado:
 
-- **support = 0.2** → se considera una regla relevante si aparece en al menos el 20 % de los casos.  
-- **confidence = 0.5** → se exige que la regla se cumpla en al menos la mitad de las observaciones donde aplica.
+  ```
+  {area_geo_inf=2} => {falta_inf=[3,5]}
+  support = 0.2419 | confidence = 0.7108 | lift = 0.9283
+  ```
 
-Las reglas se ordenan por soporte descendente y se inspeccionan las primeras 130:
+  Indica que en área rural las faltas de grupos 3–5 son frecuentes, aunque el `lift` cercano a 1 sugiere una relación acorde a la media general.
 
-```r
-reglas <- sort(reglas, by = "support", decreasing = TRUE)
-inspect(reglas[0:130])
-```
+### Segmentos analizados
+
+| Dataset        | Filtro aplicado                           | Objetivo                                 |
+|----------------|-------------------------------------------|-------------------------------------------|
+| `df_final_h`   | `sexo_inf == 1`                           | Reglas específicas para infractores hombres |
+| `df_final_e`   | `est_ebriedad_inf == 1`                   | Patrones vinculados al consumo de alcohol  |
+| `df_sin_ig`    | Exclusión de valores 9 en variables clave | Depurar sesgos por respuestas ignoradas    |
+| `df_final_fp`  | Mujeres sin valores ignorados             | Ejecución de FP-Growth focalizada          |
+
+Cada subconjunto permite comparar patrones y validar la robustez de las reglas.
+
+### Clustering k-means
+
+- Se generan variables dummy y se normalizan para evitar sesgos por escala.
+- Se determina el número de componentes principales con eigenvalues > 1 para interpretar la varianza retenida.
+- Los resultados (`cluster` y gráfico PCA) ayudan a identificar segmentos homogéneos de infractores según variables demográficas.
 
 ---
 
-## 👥 Segmentos analizados
+## 🛠️ Implementación en otros ambientes
 
-Se generaron versiones adicionales del dataset para explorar patrones específicos:
-
-| Dataset | Filtro aplicado | Descripción |
-|----------|----------------|--------------|
-| `df_final_h` | `sexo_inf == 1` | Solo infractores hombres |
-| `df_final_e` | `est_ebriedad_inf == 1` | Solo infractores en estado de ebriedad |
-| `df_sin_ig` | Exclusión de valores 9 | Sin “Ignorado” en columnas clave |
-
-Cada uno fue analizado con Apriori de forma independiente.
-
----
-
-## 📊 Exploraciones complementarias
-
-1. **Filtrado por año de boleta (`ano_boleta`)** para observar variaciones temporales.  
-2. **Creación de `reglas_2`**, eliminando variables jerárquicas redundantes (`g_edad_60ymas`, `nacimiento_inf`, `g_primarios`, `gran_grupos`) para verificar si influyen en la estructura de reglas.  
-3. **Identificación de reglas significativas**, como la **Regla 4**:
-
-   ```
-   {area_geo_inf=2} => {falta_inf=[3,5]}
-   support = 0.2419 | confidence = 0.7108 | lift = 0.9283
+1. **Clonar el repositorio**
+   ```bash
+   git clone https://github.com/<usuario>/Proyecto_Fase_1.git
+   cd Proyecto_Fase_1
    ```
 
-   Esta regla sugiere que el 71 % de los casos en **área rural** están asociados a faltas de los grupos 3–5, aunque su *lift* indica una tendencia general similar a la media nacional.
+2. **Configurar R en el entorno objetivo**
+   - **Windows:** Instale R y RStudio desde <https://cran.r-project.org/>. Asegúrese de ejecutar RStudio como administrador la primera vez para instalar paquetes globales si es necesario.
+   - **macOS:** Instale Xcode Command Line Tools (`xcode-select --install`), luego R y RStudio. Si usa `homebrew`, puede instalar R con `brew install --cask r`.
+   - **Linux (Debian/Ubuntu):**
+     ```bash
+     sudo apt update
+     sudo apt install r-base r-base-dev libxml2-dev libssl-dev libcurl4-openssl-dev
+     ```
 
----
+3. **Instalar dependencias** (ver sección de librerías). Ejecute el bloque `install.packages(...)` dentro de R.
 
-## 📦 Librerías utilizadas
+4. **Verificar la codificación de los archivos Excel**
+   - Los Excel deben usar UTF-8 o ISO-8859-1. Si se detectan caracteres extraños, reexporte desde Excel indicando la codificación.
 
-```r
-library(readxl)
-library(dplyr)
-library(stringi)
-library(arules)
-```
+5. **Actualizar la variable `ruta`** y ejecutar el script como se indicó anteriormente.
 
----
+6. **Validar resultados**
+   - Revise los data frames resultantes (`View(df_final)` en RStudio).
+   - Analice las reglas más importantes: `inspect(head(reglas, 10))`.
+   - Guarde evidencia (capturas de la consola o gráficos) para su informe académico.
 
-## 📤 Exportación opcional
-
-Para guardar la base final:
-
-```r
-write.csv(df_final, "df_final.csv", row.names = FALSE, fileEncoding = "UTF-8")
-```
-
----
-
-## 🧠 Notas técnicas finales
-
-- Los años 2018–2019 fueron excluidos deliberadamente por inconsistencias y el efecto de pandemia.  
-- El proceso es **totalmente reproducible**: cualquier nuevo archivo que siga la misma estructura será integrado automáticamente.  
-- El análisis puede replicarse con independencia del entorno, ajustando únicamente la variable `ruta`.
+> ✅ La estructura es reproducible en cualquier entorno siempre que las rutas y permisos sean correctos.
 
 ---
 
 ## 👨‍💻 Autor
 
-**Rodrigo Eduardo Hernández Morales**  
-Maestría en Ciencia de la Computación – Especialidad en Ciencia de Datos  
-Universidad de San Carlos de Guatemala  
+**Rodrigo Eduardo Hernández Morales**
+Maestría en Ciencia de la Computación – Especialidad en Ciencia de Datos
+Universidad de San Carlos de Guatemala

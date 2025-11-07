@@ -33,7 +33,6 @@ El script principal (`Fase_1.R`) automatiza la **lectura, estandarización, cons
 - **R 4.2 o superior.** El script utiliza sintaxis y paquetes que requieren versiones recientes.
 - **RStudio** (recomendado) o cualquier IDE/terminal que permita ejecutar scripts de R.
 - **Sistema operativo:** Windows, macOS o Linux. Se debe ajustar la variable `ruta` a la ubicación del directorio `datasets` en el sistema anfitrión.
-- **Permisos de lectura** sobre la carpeta que contiene los archivos Excel y permisos de escritura si se desean exportaciones.
 
 ### 🧩 Librerías necesarias
 
@@ -79,13 +78,6 @@ install.packages(c(
 4. **Verificar la salida en consola**
    - Se mostrarán mensajes que confirman la creación de tablas intermedias y la ejecución de los cálculos estadísticos (PCA, matriz de covarianza, k-means).
    - El script genera una gráfica `kmeans.png` en el directorio raíz (si se ejecuta en un entorno con capacidades gráficas) para visualizar los clusters con las transformaciones ya aplicadas.
-
-5. **Exportación opcional**
-   - Para guardar la tabla final en CSV, ejecute al final de la sesión:
-
-     ```r
-     write.csv(df_final, "df_final.csv", row.names = FALSE, fileEncoding = "UTF-8")
-     ```
 
 ---
 

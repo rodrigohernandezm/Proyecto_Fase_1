@@ -208,23 +208,6 @@ names(info_k_dummy) <- gsub("_", ".", names(info_k_dummy))
 ## normalizacion 
 info_scaled <- scale(info_k_dummy)
 
-##### evaluacion de cantidad de clusters #####
-fviz_nbclust(info_k_dummy, kmeans, method = "wss") +
-  labs(title = "Método del codo para determinar k óptimo") +
-  theme_minimal()
-
-set.seed(123)
-wss <- c()
-for (k in 1:10) {
-  kmeans_result <- kmeans(info_k_dummy, centers = k, nstart = 10)
-  wss[k] <- kmeans_result$tot.withinss
-}
-
-plot(1:10, wss, type = "b", pch = 19, frame = FALSE,
-     xlab = "Número de clusters K",
-     ylab = "Suma total de cuadrados intra-cluster (WSS)",
-     main = "Método del Codo")
-
 ####### metodo numerico para numero de clusters ####
 info_k_dummy_no_na <- info_k_dummy %>%
   select_if(is.numeric) %>%

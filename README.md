@@ -1,6 +1,6 @@
 # 📊 Proyecto de Integración, Limpieza y Minería de Reglas de Asociación (Faltas Judiciales 2018–2024)
 
-Este repositorio contiene un flujo de trabajo completo en **R** para integrar bases anuales de faltas judiciales, limpiarlas y aplicar técnicas de **minería de reglas de asociación** y **segmentación (k-means)**. La documentación está pensada para que un catedrático pueda replicar los resultados en su propio equipo sin ambigüedades.
+Este repositorio contiene un flujo de trabajo completo en **R** para integrar bases anuales de faltas judiciales, limpiarlas y aplicar técnicas de **minería de reglas de asociación** y **segmentación (k-means)**. 
 
 El script principal (`Fase_1.R`) automatiza la **lectura, estandarización, consolidación y análisis** de archivos Excel (`.xlsx`) que registran las faltas judiciales. El objetivo final es generar un conjunto unificado de datos (2020–2024) y aplicar los algoritmos **Apriori** y **FP-Growth** para descubrir patrones relevantes.
 
@@ -141,8 +141,7 @@ install.packages(c(
    reglas <- sort(reglas, by = "support", decreasing = TRUE)
    inspect(reglas[0:50])
    ```
-   Se genera un conjunto de reglas con soporte ≥ 20 % y confianza ≥ 50 %, ordenadas por soporte para identificar patrones dominantes.
-
+  
 5. **Segmentos específicos**
    - `df_final_h`: filtra por infractores hombres (`sexo_inf == 1`).
    - `df_final_e`: filtra por estado de ebriedad (`est_ebriedad_inf == 1`).

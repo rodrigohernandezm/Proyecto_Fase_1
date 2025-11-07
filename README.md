@@ -34,6 +34,13 @@ El script principal (`Fase_1.R`) automatiza la **lectura, estandarización, cons
 - **RStudio** (recomendado) o cualquier IDE/terminal que permita ejecutar scripts de R.
 - **Sistema operativo:** Windows, macOS o Linux. Se debe ajustar la variable `ruta` a la ubicación del directorio `datasets` en el sistema anfitrión.
 
+### 📥 Clonar el repositorio
+
+```bash
+git clone https://github.com/<usuario>/Proyecto_Fase_1.git
+cd Proyecto_Fase_1
+```
+
 ### 🧩 Librerías necesarias
 
 Ejecutar el siguiente bloque una única vez para instalar las dependencias:
@@ -182,13 +189,7 @@ install.packages(c(
 
 ## 🛠️ Implementación en otros ambientes
 
-1. **Clonar el repositorio**
-   ```bash
-   git clone https://github.com/<usuario>/Proyecto_Fase_1.git
-   cd Proyecto_Fase_1
-   ```
-
-2. **Configurar R en el entorno objetivo**
+1. **Configurar R en el entorno objetivo**
    - **Windows:** Instale R y RStudio desde <https://cran.r-project.org/>. Asegúrese de ejecutar RStudio como administrador la primera vez para instalar paquetes globales si es necesario.
    - **macOS:** Instale Xcode Command Line Tools (`xcode-select --install`), luego R y RStudio. Si usa `homebrew`, puede instalar R con `brew install --cask r`.
    - **Linux (Debian/Ubuntu):**
@@ -197,14 +198,14 @@ install.packages(c(
      sudo apt install r-base r-base-dev libxml2-dev libssl-dev libcurl4-openssl-dev
      ```
 
-3. **Instalar dependencias** (ver sección de librerías). Ejecute el bloque `install.packages(...)` dentro de R.
+2. **Instalar dependencias** (ver sección de librerías). Ejecute el bloque `install.packages(...)` dentro de R.
 
-4. **Verificar la codificación de los archivos Excel**
+3. **Verificar la codificación de los archivos Excel**
    - Los Excel deben usar UTF-8 o ISO-8859-1. Si se detectan caracteres extraños, reexporte desde Excel indicando la codificación.
 
-5. **Actualizar la variable `ruta`** y ejecutar el script como se indicó anteriormente.
+4. **Actualizar la variable `ruta`** y ejecutar el script como se indicó anteriormente.
 
-6. **Validar transformaciones**
+5. **Validar transformaciones**
    - Revise los data frames resultantes (`View(df_final)` en RStudio) para comprobar que las columnas dummy y los filtros se hayan aplicado correctamente.
    - Inspeccione los objetos intermedios (`str(df_final_dummy)`, `head(pca$x)`) para validar la normalización y la reducción de dimensionalidad.
    - Compruebe que la matriz de covarianza se generó sin `NA` mediante `cov(na.omit(df_final_dummy))` si se requiere diagnosticar el PCA.

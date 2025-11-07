@@ -37,7 +37,7 @@ El script principal (`Fase_1.R`) automatiza la **lectura, estandarización, cons
 ### 📥 Clonar el repositorio
 
 ```bash
-git clone https://github.com/<usuario>/Proyecto_Fase_1.git
+git clone https://github.com/rodrigohernandezm/Proyecto_Fase_1.git
 cd Proyecto_Fase_1
 ```
 

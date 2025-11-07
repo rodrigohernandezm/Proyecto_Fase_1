@@ -8,7 +8,7 @@ library(ggplot2)
 library(factoextra)
 
 ruta<- "C:/Users/rodri/OneDrive/Documentos/Maestria/Cuarto_trimestre/Mineria de datos/Proyecto/datasets"
-ruta<- "C:/Users/rhernandez/Proyecto_Fase_1/datasets"
+#ruta<- "C:/Users/rhernandez/Proyecto_Fase_1/datasets"
 
 archivos<- list.files(path = ruta, pattern = "\\.xlsx$", full.names = TRUE)
 
@@ -21,8 +21,6 @@ for (archivo in archivos) {
 }
 
 
-ls()
-
 df_2018<- as.data.frame(df_2018)
 df_2019<- as.data.frame(df_2019)
 df_2020<- as.data.frame(df_2020)
@@ -34,10 +32,12 @@ df_2024<- as.data.frame(df_2024)
 ### voy a usar informacion desde 2020 para quitar el efecto pandemia ademas que la informacion no es la misma
 length(colnames(df_2024))
 
-anios <- 2020:2024
+
 
 ### voy a eliminar las filas que solo aparecen en algunos df ya que no me sirven de mucho
 ### voy a unificar los nombres de las variables ya que algunas varian por algunas mayusculas o tildes
+anios <- 2020:2024
+
 for (i in anios) {
   df <- get(paste0("df_", i))
   
@@ -65,7 +65,6 @@ df_final <- bind_rows(mget(paste0("df_", anios)))
 
 #### Apriori ####
 
-
 reglas<- apriori(df_final[, !names(df_final) %in% c('num_corre')], parameter = list(support=0.2, confidence = 0.5))
 reglas<- sort(reglas, by = "support", decreasing = TRUE)
 inspect(reglas[0:50])
@@ -90,7 +89,7 @@ inspect(reglas_e[0:130])
 
 ### reglas eliminando lo valores ignorados de algunas columnas
 
-df_sin_ig <- df_final %>%
+df_sin_ig<- df_final %>%
   filter(
     falta_inf != 9,
     sexo_inf != 9,
@@ -160,7 +159,6 @@ rf_2
 
 
 #### kmeans
-
 var_kmeans<- c("edad_quinquenal", "depto_boleta", "muni_boleta","mes_boleta","ano_boleta","falta_inf",
               "edad_inf", "grupo_etnico_inf","est_conyugal_inf", "nacimiento_inf",
               "cond_alfabetismo_inf", "niv_escolaridad_inf", "area_geo_inf", "depto_nacimiento_inf")
@@ -191,7 +189,6 @@ df_final_km<- df_final_km%>%
 df_final_km<- df_final_km[,var_kmeans]
 
 ## variables categoricas
-
 cat_vars <- c("edad_quinquenal", "depto_boleta", "muni_boleta",  "mes_boleta", "ano_boleta", "falta_inf", "grupo_etnico_inf","est_conyugal_inf", "nacimiento_inf",
               "cond_alfabetismo_inf", "niv_escolaridad_inf", "area_geo_inf", "depto_nacimiento_inf")
 
@@ -204,13 +201,11 @@ info_k_dummy<- dummy_cols(
 )
 
 ## asignarle nombre adecuado a las nuevas variables dummies
-
 names(info_k_dummy) <- gsub("__", "_", names(info_k_dummy))
 names(info_k_dummy) <- gsub("_([A-Za-z0-9]+)$", ".\\1", names(info_k_dummy))
 names(info_k_dummy) <- gsub("_", ".", names(info_k_dummy))
 
 ## normalizacion 
-
 info_scaled <- scale(info_k_dummy)
 
 ##### evaluacion de cantidad de clusters #####
@@ -231,22 +226,18 @@ plot(1:10, wss, type = "b", pch = 19, frame = FALSE,
      main = "Método del Codo")
 
 ####### metodo numerico para numero de clusters ####
-
 info_k_dummy_no_na <- info_k_dummy %>%
   select_if(is.numeric) %>%
   na.omit()
 
 matriz_cov <- cov(info_k_dummy_no_na)
-
 eigen_vals <- eigen(matriz_cov)$values
-print(eigen_vals)
+#print(eigen_vals)
 
 num_factores <- sum(eigen_vals > 1)
 cat("Número de componentes con eigenvalue > 1:", num_factores, "\n")
 
-
 #####
-
 info_numerico <- info_k_dummy_no_na %>%
   select_if(is.numeric)
 
@@ -254,7 +245,7 @@ info_numerico <- info_numerico[, apply(info_numerico, 2, var, na.rm = TRUE) != 0
 info_numerico <- info_numerico[complete.cases(info_numerico), ]
 info_numerico <- info_numerico[apply(info_numerico, 1, function(x) all(is.finite(x))), ]
 
-nrow(info_numerico)
+#nrow(info_numerico)
 
 info_scaled <- scale(info_numerico)
 
